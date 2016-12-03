@@ -1,0 +1,25 @@
+- Immediate assertions are simple non-temporal domain assertions 
+  that are executed like statements in a procedural block. 
+  
+- Interpret them as an expression in the condition of a procedural ‘if’ statement. 
+  
+- Immediate assertions can be specified only where a procedural statement 
+  is specified.
+  
+- This assertion can be preceded by a level sensitive or an edge sensitive statement.
+  (The concurrent assertions can work only off of a sampling "edge" and not off of 
+   a level sensitive control.)
+  
+Example:
+
+  always @(posedge clk) 
+  begin
+    if (a) begin
+      @(posedge d);
+      bORc: 
+         //'%m' prints [module_name].bORc 
+         assert (b || c) $display("\n", $stime,,,"%m assert passed\n");
+         else  //This 'else' is for the 'assert'. not for the 'if (a)'
+            $fatal("\n", $stime,,,"%m assert failed \n");
+    end
+  end
