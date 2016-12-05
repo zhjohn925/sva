@@ -1,0 +1,169 @@
+Verilog-1995 has two basic data types:
+  Both hold 4-state values: 0, 1, Z and X
+  1. variables:
+     -reg (unsigned single or multi-bit)
+     -integer (signed 32-bit)
+     -time (unsigned 64-bit)
+     -real (floating point)
+     -Variables can be grouped together into arrays
+      that have a fixed size.
+  2. nets
+     Use to connect parts of a design
+     -wire
+     -a bidirectional bus should be declared with a
+      net type such as wire.
+
+SystemVerilog
+  3. logic
+     -SystemVerilog improves the classic "reg" data type
+      so that it can be driven by continuous assignments,
+      gates, and modules, in addition to being a variable.
+     -a logic signal can be used anywhere a net is used,
+      except that a logic variable cannot be driven by
+      multiple structural drivers (ie. modeling a
+      bidirectional bus).
+
+  4. 2-state data types
+     -bit (is always unsigned)
+     -byte
+     -shortint
+     -int
+     -longint
+
+  5. Fixed-size Arrays
+     int lo_hi[0:15];       // 16 ints [0]..[15]
+     int c_style[16];       // 16 ints [0]..[15]
+     int array2[0:7][0:3];  // Verbose declaration Verilog-2001
+     int array3[8][4];      // Compact declaration
+     array2[7][3] = 1;      // Set last array element
+
+     //An unpacked array stores the values in the lower
+     //portion of the word, whereas the upper bits are unused.
+     //   b_unpack[0]  [bit 31:8 is unused] 76543210
+     //   b_unpack[1]  [bit 31:8 is unused] 76543210
+     //   b_unpack[2]  [bit 31:8 is unused] 76543210
+
+     bit [7:0] b_unpack[3];  // Unpacked
+
+     //Unpacked array types: fixed, dynamic, queue, and associative
+
+
+  6. Dynamic array
+     int dyn[];
+     dyn = new [5];
+     int dyn[] = '{1, 2, 3, 5};
+
+  7. Associative array
+     //If you try to read an element that has not been written, SystemVerilog
+     //  returns the default value for the array type, such as 0 for 2-state
+     //  types, or X for 4-state types.
+     bit[63:0] assoc[int];   //has index range of integer
+     bit[63:0] assoc[bit[63:0]];   //has index range of 64-bit unsigned
+     int assoc[string];      //has index of string
+
+
+  8. Queue
+     // The queue, which combines the best of an linked list and array.
+     // Like a linked list, you can add or remove elements anywhere in a queue,
+     // without the performance hit of a dynamic array that has to
+     // allocate a new array and copy the entire contents. Like an array,
+     // you can directly access any element with an index, without linked
+     // list’s overhead of stepping through the preceding elements
+
+     int q[$] = {0,2,5};   // Queue literals do not use Õ
+
+  9. User-defined type-macro in Verilog
+     `define OPSIZE 8
+     `define OPREG reg[`OPSIZE-1 : 0]
+     `OPREG op_a, op_b;
+
+  10. User-defined type in SystemVerilog
+      parameter OPSIZE = 8;
+      typedef reg [OPSIZE-1 : 0]  opreg_t;
+      opreg_t op_a, op_b;
+      //
+      typedef bit [31:0] uint; // 32-bit unsigned 2-state
+      typedef int unsigned uint; // Equivalent definition
+
+  11. Using typedef to create an union
+      typedef union { int i; real f; } num_u;
+      num_u un;
+      un.f = 0.0;
+
+  12. Packed Structures
+      typedef struct packed { bit[7:0] r, g, b; } pixel_s;
+      pixel_s p;
+
+  13. enumerate type
+      //An enumerated type is stored as int unless you specify otherwise.
+      enum {RED, BLUE, GREEN} color;
+      typedef enum {INIT, DECODE, IDLE} fsm_e;
+      fsm_e pstate;
+      typedef enum {INIT, DECODE=2, IDLE} fsm_e;
+
+
+/////////////////////////////////////////////////////////////////////
+// 2-state vs 4-state
+/////////////////////////////////////////////////////////////////////
+Simulators generally store 4-state types such as logic and integer
+in two or more consecutive words, using twice the storage
+as 2-state variables.
+
+
+//////////////////////////////////////////////////////
+//Read from an out-of-bounds address in an Array
+//////////////////////////////////////////////////////
+If your code accidently tries to read from an out-of-bounds address,
+SystemVerilog will return the default value for the array element type.
+That just means that an array of 4-state types, such as logic,
+will return X’s, whereas an array of 2-state types,
+such as int or bit, will return 0. This applies for all array types
+fixed, dynamic, associative, or queue, and also if your address
+has an X or Z. An undriven net is Z.
+
+
+//////////////////////////////////////////////////////
+//Sample 2.1 Using the logic type
+//////////////////////////////////////////////////////
+module logic_data_type(input logic rst_h);
+  parameter CYCLE = 20;
+  logic q, q_l, d, clk, rst_l;
+
+  initial begin
+     clk = 0;       // Procedural assignment
+     forever #(CYCLE/2) clk = ~clk;
+  end
+
+  assign rst_l = ~rst_h;        // Continuous assignment
+  not n1(q_l, q);               // q_l is driven by gate
+  my_dff d1(q, d, clk, rst_l);  // q is driven by module
+endmodule
+
+
+////////////////////////////////////////////////////////
+//Sample 2.2 Signed data types
+////////////////////////////////////////////////////////
+  bit b;              // 2-state, single-bit
+  bit [31:0] b32;     // 2-state, 32-bit unsigned integer
+  int unsigned ui;    // 2-state, 32-bit unsigned integer
+  int i;              // 2-state, 32-bit signed integer
+  byte b8;            // 2-state, 8-bit signed integer
+  shortint s;         // 2-state, 16-bit signed integer
+  longint l;          // 2-state, 64-bit signed integer
+  integer i4;         // 4-state, 32-bit signed integer
+  time t;             // 4-state, 64-bit unsigned integer
+  real r;             // 2-state, double precision floating pt
+
+
+//////////////////////////////////////////////////////////////////
+//Easy Bugs
+//////////////////////////////////////////////////////////////////
+1. "byte" is 8-bit signed integer has range of -128 to +127
+   "bit [7:0]" is 8-bit unsigned integer has range of 0 to 255
+
+2. Be careful connecting 2-state variables to the DUT. If the
+   hardware tries to drive an X or Z, these values are converted
+   to a 2-state value. Use the $isunknown() operator that
+   returns 1 if any bit of the expression is X or Z.
+
+

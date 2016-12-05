@@ -1,0 +1,10 @@
+// 2.11.1 The Static Cast (has no checking out of bounds)
+  int i;
+  real r;
+  i = int '(10.0 - 0.1); // cast is optional
+  r = real'(42); // cast is optional
+
+// 2.11.2 The Dynamic Cast (see test_cast01.sv)
+  The dynamic cast, $cast, check for out-of-bounds values
+
+

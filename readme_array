@@ -1,0 +1,100 @@
+/////////////////////////////////////////////////////////////////////
+// Declare array
+/////////////////////////////////////////////////////////////////////
+     int lo_hi[0:15];       // 16 ints [0]..[15]
+     int c_style[16];       // 16 ints [0]..[15]
+     int array2[0:7][0:3];  // Verbose declaration Verilog-2001
+     int array3[8][4];      // Compact declaration
+     array2[7][3] = 1;      // Set last array element
+
+     //An unpacked array stores the values in the lower
+     //portion of the word, whereas the upper bits are unused.
+     //   b_unpack[0]:  [bit 31:8 is unused] 76543210
+     //   b_unpack[1]:  [bit 31:8 is unused] 76543210
+     //   b_unpack[2]:  [bit 31:8 is unused] 76543210
+
+     bit [7:0] b_unpack[3];  // Unpacked
+
+     //         bytes[3]  bytes[2]  bytes[1]  bytes[0]
+     //bytes:   76543210  76543210  76543210  76543210
+     bit [3:0] [7:0] bytes;      // 4 bytes packed into 32-bits
+
+     //       a[0][3]
+     //a[0]:  76543210  76543210  76543210  76543210
+     //a[1]:  76543210  76543210  76543210  76543210
+     //a[2]:  76543210  76543210  76543210  76543210
+     bit [3:0] [7:0] a [3];    // Packed: 3x32-bit
+
+
+     int dyn[], d2[]; // Declare dynamic arrays
+
+     //Using a dynamic array for an uncounted list
+     bit [7:0] mask[] = Õ{8Õb0000_0000, 8Õb0000_0001,
+                          8Õb0000_0011, 8Õb0000_0111};
+
+
+     //using associative arrays
+     bit [63:0] assoc[int], idx=1;
+     repeat (64) begin
+       assoc[idx] = idx;
+       idx = idx << 1;
+     end
+
+/////////////////////////////////////////////////////////////////////
+// Initializing array
+/////////////////////////////////////////////////////////////////////
+   int ascend[4] = Õ{0,1,2,3};     // Initialize 4 elements
+   int descend[5];
+   descend = Õ{4,3,2,1,0};         // Set 5 elements
+   descend[0:2] = Õ{5,6,7};        // Set first 3 elements
+   ascend = Õ{4{8}};               // Four values of 8
+   descend = Õ{9, 8, default:-1};  // {9, 8, -1, -1, -1}
+   int md[2][3] = Õ{Õ{0,1,2}, Õ{3,4,5}};
+
+/////////////////////////////////////////////////////////////////////
+// Implementing array
+/////////////////////////////////////////////////////////////////////
+
+// 1. Sample 2.8 Using arrays with for- and foreach- loops
+
+   initial begin
+      bit [31:0] src[5], dst[5];
+      for (int i=0; i<$size(src); i++) {
+         src[i] = i;
+      }
+      foreach (dst[j])
+         dst[j] = src[j] * 2;
+   end
+
+// 2. Sample 2.9 Initialize and step through a multidimensional array
+
+   int md[2][3] = Õ{Õ{0,1,2}, Õ{3,4,5}};
+   initial begin
+      $display("Initial value: ");
+      foreach (md[i, j])
+         $display("md[%0d][%0d] = %0d", i, j, md[i][j]);
+
+      $display("New value: ");
+      // Replicate last 3 values of 5
+      md = Õ{Õ{9, 8, 7}, Õ{3{Õ5}}};
+      foreach (md[i,j])
+         $display("md[%0d][%0d] = %0d", i, j, md[i][j]);
+   end
+
+// 3. Array locator methods: min, max, unique, find
+//    Note these methods return a queue
+   int f[6] = '{1, 6, 2, 6, 8, 6};
+   int d[] = '{2, 4, 6, 8, 10 };
+   int h[] = '{9, 1, 8, 3, 4, 4};
+   int q[$] = {1, 3, 5, 7}, tq[$];
+
+   tq = q.min();     // { 1 }
+   tq = d.max();     // { 10}
+   tq = f.unique();  //{1, 6, 2, 8}
+   tq = h.find with (item>3);        //{9, 8, 4, 4}
+   tq = h.find_index with (item>3);  //{0, 2, 4, 5}
+   tq = h.find_first with (item>99); //{ }
+   tq = h.find_first_index with (item==8);  //{ 2 }
+   tq = h.find_last(x) with (x==4);         //{ 4 }
+   tq = h.find_last_index with (item==4)    //{ 5 }
+
